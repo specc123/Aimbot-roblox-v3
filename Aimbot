@@ -1,0 +1,106 @@
+-- Roblox Aimbot Script with HUD
+-- This script aims at the nearest person to you and allows you to toggle between targets.
+-- It also includes an admin code for enabling the aimbot.
+
+local adminCode = "MTLS"
+local aimbotEnabled = false
+local currentTarget = nil
+
+-- UI
+local ScreenGui = Instance.new("ScreenGui")
+local ToggleButton = Instance.new("TextButton")
+local AdminTextBox = Instance.new("TextBox")
+local TargetLabel = Instance.new("TextLabel")
+local StatusLabel = Instance.new("TextLabel")
+
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = game.Workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+-- Create UI
+ScreenGui.Parent = StarterGui
+
+ToggleButton.Size = UDim2.new(0, 200, 0, 50)
+ToggleButton.Position = UDim2.new(0.5, -100, 0.9, -25)
+ToggleButton.Text = "Toggle Aimbot"
+ToggleButton.Parent = ScreenGui
+
+AdminTextBox.Size = UDim2.new(0, 200, 0, 50)
+AdminTextBox.Position = UDim2.new(0.5, -100, 0.8, -25)
+AdminTextBox.PlaceholderText = "Enter Admin Code"
+AdminTextBox.Parent = ScreenGui
+
+TargetLabel.Size = UDim2.new(0, 400, 0, 50)
+TargetLabel.Position = UDim2.new(0.5, -200, 0.7, -25)
+TargetLabel.Text = "Current Target: None"
+TargetLabel.TextColor3 = Color3.new(1, 1, 1)
+TargetLabel.BackgroundTransparency = 1
+TargetLabel.Parent = ScreenGui
+
+StatusLabel.Size = UDim2.new(0, 200, 0, 50)
+StatusLabel.Position = UDim2.new(0.5, -100, 0.6, -25)
+StatusLabel.Text = "Aimbot: Disabled"
+StatusLabel.TextColor3 = Color3.new(1, 0, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Parent = ScreenGui
+
+-- Functions
+local function getNearestPlayer()
+    local nearestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local distance = (player.Character.Head.Position - LocalPlayer.Character.Head.Position).magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                nearestPlayer = player
+            end
+        end
+    end
+
+    return nearestPlayer
+end
+
+local function aimAtTarget(target)
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+    end
+end
+
+local function onToggleButtonClicked()
+    aimbotEnabled = not aimbotEnabled
+    ToggleButton.Text = aimbotEnabled and "Disable Aimbot" or "Enable Aimbot"
+    StatusLabel.Text = aimbotEnabled and "Aimbot: Enabled" or "Aimbot: Disabled"
+    StatusLabel.TextColor3 = aimbotEnabled and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
+end
+
+local function onAdminTextBoxFocusLost()
+    if AdminTextBox.Text == adminCode then
+        ToggleButton.Visible = true
+        AdminTextBox:Destroy() -- Remove the admin text box after successful entry
+    else
+        ToggleButton.Visible = false
+    end
+end
+
+-- Event Listeners
+ToggleButton.MouseButton1Click:Connect(onToggleButtonClicked)
+AdminTextBox.FocusLost:Connect(onAdminTextBoxFocusLost)
+
+-- Main Loop
+RunService.RenderStepped:Connect(function()
+    if aimbotEnabled then
+        currentTarget = getNearestPlayer()
+        aimAtTarget(currentTarget)
+        
+        if currentTarget then
+            TargetLabel.Text = "Current Target: " .. currentTarget.Name
+        else
+            TargetLabel.Text = "Current Target: None"
+        end
+    end
+end)
