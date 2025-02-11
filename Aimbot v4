@@ -1,0 +1,125 @@
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local AimbotActive = false
+local TargetIndex = 1
+local UnlockCount = 0
+local AimbotUnlocked = false
+
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = ScreenGui
+StatusLabel.Size = UDim2.new(0.2, 0, 0.05, 0)
+StatusLabel.Position = UDim2.new(0.4, 0, 0.02, 0)
+StatusLabel.BackgroundTransparency = 0.5
+StatusLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+StatusLabel.TextScaled = true
+StatusLabel.Text = "Aimbot Locked"
+
+-- Toggle Aimbot Button (Mobile)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Parent = ScreenGui
+ToggleButton.Size = UDim2.new(0.15, 0, 0.07, 0)
+ToggleButton.Position = UDim2.new(0.02, 0, 0.85, 0)
+ToggleButton.BackgroundColor3 = Color3.new(0, 0, 0)
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.TextScaled = true
+ToggleButton.Text = "Aimbot OFF"
+ToggleButton.Visible = false
+
+-- Switch Target Button (Mobile)
+local SwitchButton = Instance.new("TextButton")
+SwitchButton.Parent = ScreenGui
+SwitchButton.Size = UDim2.new(0.15, 0, 0.07, 0)
+SwitchButton.Position = UDim2.new(0.2, 0, 0.85, 0)
+SwitchButton.BackgroundColor3 = Color3.new(0, 0, 0)
+SwitchButton.TextColor3 = Color3.new(1, 1, 1)
+SwitchButton.TextScaled = true
+SwitchButton.Text = "Switch Target"
+SwitchButton.Visible = false
+
+-- Function to get valid targets
+local function GetTargets()
+    local Targets = {}
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(Targets, Player.Character.HumanoidRootPart)
+        end
+    end
+    return Targets
+end
+
+-- Function to switch between targets
+local function SwitchTarget()
+    local Targets = GetTargets()
+    if #Targets == 0 then return end
+
+    TargetIndex = TargetIndex + 1
+    if TargetIndex > #Targets then
+        TargetIndex = 1
+    end
+end
+
+-- Aimbot lock-on function
+RunService.RenderStepped:Connect(function()
+    if AimbotUnlocked and AimbotActive then
+        local Targets = GetTargets()
+        if #Targets > 0 then
+            local Target = Targets[TargetIndex] or Targets[1]
+            if Target then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Position)
+                StatusLabel.Text = "Aimbot: ON | Target: " .. Target.Parent.Name
+            end
+        else
+            StatusLabel.Text = "Aimbot: ON | No Target"
+        end
+    elseif AimbotUnlocked then
+        StatusLabel.Text = "Aimbot: OFF"
+    end
+end)
+
+-- Key & Touch Input Handling
+local function HandleActivation()
+    if not AimbotUnlocked then
+        UnlockCount = UnlockCount + 1
+        if UnlockCount >= 3 then
+            AimbotUnlocked = true
+            StatusLabel.Text = "Aimbot Ready! Press E or Tap Button"
+            ToggleButton.Visible = true
+            SwitchButton.Visible = true
+            print("Aimbot Unlocked!")
+        end
+    end
+end
+
+-- Toggle Aimbot Function
+local function ToggleAimbot()
+    if AimbotUnlocked then
+        AimbotActive = not AimbotActive
+        ToggleButton.Text = AimbotActive and "Aimbot ON" or "Aimbot OFF"
+    end
+end
+
+-- Connect Buttons
+ToggleButton.MouseButton1Click:Connect(ToggleAimbot)
+SwitchButton.MouseButton1Click:Connect(SwitchTarget)
+
+-- Key Input
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.UserInputType == Enum.UserInputType.Touch or input.KeyCode == Enum.KeyCode.E then
+        HandleActivation()
+    elseif input.KeyCode == Enum.KeyCode.E and AimbotUnlocked then
+        ToggleAimbot()
+    elseif input.KeyCode == Enum.KeyCode.Q and AimbotUnlocked then
+        SwitchTarget()
+    end
+end)
